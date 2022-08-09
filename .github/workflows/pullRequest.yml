@@ -1,6 +1,9 @@
 name: Bare Minimum Requirements
 
-on: [push, pull_request]
+on: 
+  pull_request:
+      branches:
+      - reference
 
 jobs:
   test:
@@ -11,5 +14,26 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: '16'
-      - run: npm install
-      - run: npm test
+      - name: npm install
+        run: npm install
+      - name: run test code
+        run: npm test
+      - name: if fail
+        uses: actions/github-script@0.2.0 
+        with:
+          github-token: ${{github.token}}  
+          script: |                       
+            const ref = "${{github.ref}}"
+            const pull_number = Number(ref.split("/")[2])
+            await github.pulls.createReview({
+              ...context.repo,
+              pull_number,
+              body:"테스트코드를 다시 확인해주세요😍 ",
+              event: "REQUEST_CHANGES"
+            })
+            await github.pulls.update({
+              ...context.repo,
+              pull_number,
+              state: "closed"
+            })
+        if: failure()  
